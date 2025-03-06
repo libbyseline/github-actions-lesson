@@ -1,0 +1,51 @@
+name: First Scraper
+
+on:
+  workflow_dispatch:
+    inputs:
+
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    name: Scrape
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        state: [ia, ne, ny]
+    steps:
+      - name: Hello world
+        run: echo "Scraping data for ${{ matrix.state }}"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install scraper
+        run: pip install warn-scraper
+
+      - name: Scrape
+        run: warn-scraper ${{ inputs.state }} --data-dir ./data/
+
+      - name: Save datestamp 
+        run: date > ./data/latest-scrape.txt
+
+      - name: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.state }}
+          path: ./data/${{ matrix.state }}.csv
+
+  commit: # lines up with scrape from above
+      name: Commit
+      runs-on: ubuntu-latest
+      needs: scrape
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
